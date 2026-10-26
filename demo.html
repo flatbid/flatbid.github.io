@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FlatBid Demo — analytics and bidder on sample data</title>
+<meta name="description" content="Interactive FlatBid demo on synthetic data: Amazon Sponsored Products analytics, wasted spend, and how the bidder proposes bid changes, negatives and keyword harvests with a reason for each.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%231f6feb'/><path d='M8 20h16M8 14h10' stroke='white' stroke-width='3' stroke-linecap='round'/></svg>">
+<style>
+  :root {
+    --bg: #ffffff; --bg-soft: #f5f7fb; --text: #0f172a; --muted: #5b6475; --faint: #8a93a6; --line: #e3e8f0;
+    --brand: #1f6feb; --brand-ink: #ffffff; --brand-soft: #e8f0fe; --card: #ffffff;
+    --series-1: #2a78d6; --series-2: #eb6834; --grid: #edf0f5; --axis: #8a93a6;
+    --good: #0ca30c; --warning: #b77900; --critical: #d03b3b; --neutral: #5b6475;
+    --good-soft: #e7f6e7; --warn-soft: #fff4dc; --crit-soft: #fbe9e9; --neutral-soft: #eef1f6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0b1020; --bg-soft: #111831; --text: #e8ecf5; --muted: #9aa4b8; --faint: #7b859b; --line: #243055;
+      --brand: #4c8dff; --brand-ink: #0b1020; --brand-soft: #16244a; --card: #0f1630;
+      --series-1: #3987e5; --series-2: #d95926; --grid: #1c2648; --axis: #7b859b;
+      --good: #3ccf3c; --warning: #fab219; --critical: #ff6b6b; --neutral: #9aa4b8;
+      --good-soft: #10301a; --warn-soft: #33280b; --crit-soft: #3a1518; --neutral-soft: #1a2342;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0b1020; --bg-soft: #111831; --text: #e8ecf5; --muted: #9aa4b8; --faint: #7b859b; --line: #243055;
+    --brand: #4c8dff; --brand-ink: #0b1020; --brand-soft: #16244a; --card: #0f1630;
+    --series-1: #3987e5; --series-2: #d95926; --grid: #1c2648; --axis: #7b859b;
+    --good: #3ccf3c; --warning: #fab219; --critical: #ff6b6b; --neutral: #9aa4b8;
+    --good-soft: #10301a; --warn-soft: #33280b; --crit-soft: #3a1518; --neutral-soft: #1a2342;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif; }
+  a { color: var(--brand); }
+  .wrap { max-width: 1160px; margin: 0 auto; padding: 0 20px; }
+  header.top { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 90%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+  header.top .wrap { display: flex; align-items: center; justify-content: space-between; height: 58px; }
+  .logo { font-weight: 800; font-size: 20px; letter-spacing: -0.02em; color: var(--text); text-decoration: none; }
+  .logo span { color: var(--brand); }
+  .btn { display: inline-block; background: var(--brand); color: var(--brand-ink); border: 0; border-radius: 10px; padding: 10px 18px; font-weight: 650; font-size: 15px; text-decoration: none; cursor: pointer; }
+  .btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); }
+  .banner { background: var(--warn-soft); color: var(--text); border-bottom: 1px solid var(--line); font-size: 14px; }
+  .banner .wrap { padding-top: 10px; padding-bottom: 10px; }
+  h1 { font-size: clamp(28px, 4vw, 40px); letter-spacing: -0.02em; line-height: 1.12; margin: 34px 0 10px; }
+  h2 { font-size: clamp(22px, 2.8vw, 28px); letter-spacing: -0.02em; margin: 0 0 6px; }
+  h3 { font-size: 16px; margin: 0 0 4px; }
+  .lead { color: var(--muted); max-width: 780px; margin: 0 0 24px; font-size: 17px; }
+  .muted { color: var(--muted); }
+  section { padding: 36px 0; border-top: 1px solid var(--line); }
+  .tiles { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin: 18px 0 22px; }
+  .tile { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .tile .k { font-size: 13px; color: var(--muted); }
+  .tile .v { font-size: 26px; font-weight: 750; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .tile .d { font-size: 13px; color: var(--muted); }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin-bottom: 18px; }
+  .panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+  .legend { display: flex; gap: 16px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+  .legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+  .legend i.dash { background: none; border-top: 2px dashed var(--muted); height: 0; }
+  .two { display: grid; gap: 18px; grid-template-columns: 1fr; }
+  @media (min-width: 960px) { .two { grid-template-columns: 1.4fr 1fr; } }
+  .chart { position: relative; width: 100%; }
+  .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .chart text { fill: var(--axis); font-size: 11px; font-family: inherit; }
+  .chart text.lbl { fill: var(--muted); font-size: 12px; }
+  .chart text.val { fill: var(--text); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .tip { position: absolute; pointer-events: none; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,.12); white-space: nowrap; display: none; z-index: 5; }
+  .tip b { font-variant-numeric: tabular-nums; }
+  .tip .sw { display: inline-block; width: 10px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 650; }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .scroll { overflow-x: auto; }
+  .controls { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); margin: 16px 0 6px; }
+  .ctl label { display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  .ctl label output { font-variant-numeric: tabular-nums; color: var(--brand); }
+  .ctl input[type=range] { width: 100%; accent-color: var(--brand); }
+  .ctl .hint { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 10px; }
+  .chip { border: 1px solid var(--line); background: var(--card); color: var(--text); border-radius: 999px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
+  .chip[aria-pressed="true"] { border-color: var(--brand); background: var(--brand-soft); color: var(--brand); font-weight: 650; }
+  .badge { display: inline-flex; align-items: center; gap: 5px; border-radius: 6px; padding: 2px 8px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+  .b-down { background: var(--warn-soft); color: var(--warning); }
+  .b-up { background: var(--good-soft); color: var(--good); }
+  .b-roll { background: var(--crit-soft); color: var(--critical); }
+  .b-neg { background: var(--crit-soft); color: var(--critical); }
+  .b-harv { background: var(--good-soft); color: var(--good); }
+  .b-hold { background: var(--neutral-soft); color: var(--neutral); }
+  .why { color: var(--muted); font-size: 13.5px; }
+  .change { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tr.off td { opacity: .45; }
+  .note { font-size: 13px; color: var(--muted); }
+  .qa { display: grid; gap: 10px; }
+  .qa button { text-align: left; border: 1px solid var(--line); background: var(--card); color: var(--text); border-radius: 10px; padding: 10px 14px; font-size: 15px; cursor: pointer; }
+  .qa button[aria-pressed="true"] { border-color: var(--brand); background: var(--brand-soft); }
+  .answer { background: var(--bg-soft); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-height: 120px; font-size: 15px; }
+  .answer ul { margin: 8px 0 0; padding-left: 20px; }
+  .cta { text-align: center; padding: 44px 0 64px; }
+  footer { padding: 26px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+  .sr { position: absolute; left: -9999px; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="logo" href="./">Flat<span>Bid</span></a>
+    <div><a class="btn ghost" href="./" style="margin-right:8px">Home</a><a class="btn" href="./#early-access">Get early access</a></div>
+  </div>
+</header>
+<div class="banner"><div class="wrap"><b>Interactive demo on synthetic data.</b> A fictional kitchen brand, last 30 days of Sponsored Products. Nothing here is a real account — it shows how FlatBid reads your data and what it proposes.</div></div>
+
+<main class="wrap">
+  <h1>See what FlatBid does with an ad account</h1>
+  <p class="lead">Top: the analytics FlatBid builds from your bulk file and search term report. Bottom: the bidder. Move the sliders — every proposal is recalculated and comes with the numbers behind it. Approve or reject each line and download the result as a bulk file.</p>
+
+  <section aria-labelledby="ov">
+    <h2 id="ov">Account overview · last 30 days</h2>
+    <div class="tiles" id="kpis"></div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h3>Ad sales and ad spend per day</h3>
+        <div class="legend"><span><i style="background:var(--series-1)"></i>Ad sales</span><span><i style="background:var(--series-2)"></i>Ad spend</span></div>
+      </div>
+      <div class="chart" id="chart-daily"></div>
+      <p class="note" id="boost-note"></p>
+    </div>
+
+    <div class="two">
+      <div class="panel">
+        <div class="panel-head"><h3>Campaigns</h3><span class="note">ACoS = spend ÷ ad sales</span></div>
+        <div class="scroll"><table id="t-campaigns"></table></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>Search terms with clicks and no orders</h3><span class="note">Wasted spend, 30 days</span></div>
+        <div class="chart" id="chart-waste"></div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="bd">
+    <h2 id="bd">The bidder</h2>
+    <p class="lead" style="margin-bottom:6px">Rules, not a black box: bids move toward your target ACoS in measured steps, every past bid raise is checked against what it actually returned, and nothing changes without your approval.</p>
+
+    <div class="controls">
+      <div class="ctl"><label for="target">Target ACoS <output id="o-target"></output></label><input id="target" type="range" min="15" max="50" step="1" value="30"><div class="hint">Your profitability goal per product</div></div>
+      <div class="ctl"><label for="minclicks">Clicks before judging <output id="o-minclicks"></output></label><input id="minclicks" type="range" min="8" max="30" step="1" value="15"><div class="hint">Less data than this — no decision</div></div>
+      <div class="ctl"><label for="maxbid">Max bid <output id="o-maxbid"></output></label><input id="maxbid" type="range" min="0.5" max="3" step="0.05" value="1.75"><div class="hint">Raises never go above this</div></div>
+      <div class="ctl"><label for="acclimit">Account ACoS limit <output id="o-acclimit"></output></label><input id="acclimit" type="range" min="20" max="60" step="1" value="40"><div class="hint">Above it, raises stop account-wide</div></div>
+    </div>
+
+    <div class="tiles" id="proj"></div>
+
+    <div class="chips" id="filters" role="group" aria-label="Filter proposals"></div>
+
+    <div class="panel">
+      <div class="panel-head"><h3>Proposed changes</h3><button class="btn" id="dl">Download bulk file (demo)</button></div>
+      <div class="scroll"><table id="t-props"></table></div>
+      <p class="note">Projected effect uses a deliberately simple elasticity model for this demo (spend follows bid changes faster than sales). In the product, every change is measured afterwards: week after vs week before, with automatic rollback if it did not pay off.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="cl">
+    <h2 id="cl">Ask Claude about this account</h2>
+    <p class="lead">With FlatBid data connected to Claude through MCP, you ask questions in plain English instead of building reports. Answers below are computed from the demo data on this page.</p>
+    <div class="two">
+      <div class="qa" id="qa"></div>
+      <div class="answer" id="answer" aria-live="polite"><span class="muted">Pick a question.</span></div>
+    </div>
+  </section>
+
+  <div class="cta">
+    <h2>Want this on your own account?</h2>
+    <p class="muted">Founding members get Pro free for 3 months. All we need is a bulk file export.</p>
+    <a class="btn" href="./#early-access" style="padding:13px 22px;font-size:16px">Join early access</a>
+  </div>
+</main>
+
+<footer><div class="wrap">© 2026 FlatBid · Demo data is synthetic. Not affiliated with Amazon. Amazon is a trademark of Amazon.com, Inc. or its affiliates.</div></footer>
+
+<script>
+// ───────────────────────────── demo data (synthetic, deterministic) ─────────────────────────────
+let seed = 7
+const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646 }
+const PRICE = 34.99
+const CAMPAIGNS = [
+  { id: 'auto', name: 'SP | Auto | Bamboo boards', type: 'Auto' },
+  { id: 'exact', name: 'SP | Exact | Core', type: 'Manual · exact' },
+  { id: 'broad', name: 'SP | Broad | Discovery', type: 'Manual · broad' },
+  { id: 'pat', name: 'SP | Product | Competitors', type: 'Product targeting' },
+  { id: 'brand', name: 'SP | Exact | Brand', type: 'Manual · exact' },
+]
+// Targets: 30-day aggregates. cpcK — average CPC as share of the bid.
+// boost — a bid raise applied 12 days ago, with the week before and the week after it.
+const TARGETS = [
+  { c: 'exact', t: 'bamboo cutting board', m: 'Exact', bid: 1.35, clicks: 410, orders: 46 },
+  { c: 'exact', t: 'bamboo cutting board set', m: 'Exact', bid: 1.20, clicks: 260, orders: 31 },
+  { c: 'exact', t: 'cutting board set', m: 'Exact', bid: 1.60, clicks: 380, orders: 22 },
+  { c: 'exact', t: 'wood cutting board', m: 'Exact', bid: 1.10, clicks: 150, orders: 9 },
+  { c: 'exact', t: 'large cutting board', m: 'Exact', bid: 0.95, clicks: 120, orders: 14 },
+  { c: 'exact', t: 'cutting boards for kitchen', m: 'Exact', bid: 1.45, clicks: 300, orders: 16,
+    boost: { daysAgo: 12, from: 1.15, to: 1.45, before: { spend: 72.4, sales: 454.9 }, after: { spend: 138.6, sales: 419.9 } } },
+  { c: 'exact', t: 'chopping board', m: 'Exact', bid: 0.80, clicks: 60, orders: 9 },
+  { c: 'exact', t: 'bamboo board with juice groove', m: 'Exact', bid: 0.70, clicks: 40, orders: 7 },
+  { c: 'exact', t: 'butcher block cutting board', m: 'Exact', bid: 1.25, clicks: 11, orders: 0 },
+  { c: 'broad', t: 'cutting board', m: 'Broad', bid: 1.25, clicks: 520, orders: 25 },
+  { c: 'broad', t: 'kitchen gift', m: 'Broad', bid: 0.90, clicks: 140, orders: 1 },
+  { c: 'broad', t: 'serving board', m: 'Broad', bid: 0.85, clicks: 95, orders: 6,
+    boost: { daysAgo: 5, from: 0.74, to: 0.85, before: { spend: 18.2, sales: 69.98 }, after: { spend: 14.1, sales: 69.98 } } },
+  { c: 'pat', t: 'asin="B0DEMO1A1"', m: 'Product', bid: 0.95, clicks: 210, orders: 8 },
+  { c: 'pat', t: 'asin="B0DEMO2B2"', m: 'Product', bid: 0.75, clicks: 22, orders: 0 },
+  { c: 'pat', t: 'asin="B0DEMO3C3"', m: 'Product', bid: 0.60, clicks: 80, orders: 9 },
+  { c: 'brand', t: 'demo kitchen co', m: 'Exact', bid: 0.55, clicks: 140, orders: 38 },
+  { c: 'auto', t: 'close-match', m: 'Auto', bid: 0.90, clicks: 600, orders: 30 },
+  { c: 'auto', t: 'loose-match', m: 'Auto', bid: 0.70, clicks: 400, orders: 8 },
+  { c: 'auto', t: 'substitutes', m: 'Auto', bid: 0.65, clicks: 300, orders: 10 },
+  { c: 'auto', t: 'complements', m: 'Auto', bid: 0.50, clicks: 120, orders: 1 },
+].map(x => {
+  const cpc = +(x.bid * (0.78 + rnd() * 0.12)).toFixed(2)
+  const spend = +(x.clicks * cpc).toFixed(2)
+  const sales = +(x.orders * PRICE * (0.97 + rnd() * 0.08)).toFixed(2)
+  return { ...x, cpc, spend, sales }
+})
+// Search terms from auto and broad campaigns.
+const TERMS = [
+  ['auto', 'plastic cutting board', 34, 0], ['auto', 'cutting board oil', 28, 0], ['broad', 'cheese board set', 41, 1],
+  ['broad', 'kitchen gift for mom', 22, 0], ['auto', 'marble cutting board', 19, 0], ['auto', 'glass cutting board', 26, 0],
+  ['auto', 'cutting mat', 17, 0], ['broad', 'board games', 12, 0], ['auto', 'epicurean cutting board', 15, 0],
+  ['broad', 'extra large bamboo cutting board', 48, 9], ['auto', 'bamboo cutting board set of 3', 36, 7],
+  ['broad', 'cutting board with handle', 25, 4], ['auto', 'bamboo cutting board', 120, 11], ['broad', 'cutting board', 160, 9],
+  ['auto', 'wooden cutting boards for kitchen', 44, 4], ['broad', 'charcuterie board', 39, 2], ['auto', 'thick cutting board', 21, 3],
+].map(([c, t, clicks, orders]) => {
+  const cpc = +(0.72 + rnd() * 0.32).toFixed(2)
+  return { c, t, clicks, orders, spend: +(clicks * cpc).toFixed(2), sales: +(orders * PRICE).toFixed(2) }
+})
+// Daily series built from the totals: the failed boost 12 days ago shows up as higher spend without more sales.
+const DAYS = 30
+const today = new Date(Date.UTC(2026, 9, 26))
+const DATES = Array.from({ length: DAYS }, (_, i) => new Date(today.getTime() - (DAYS - i) * 86400000))
+const totalSpend = TARGETS.reduce((a, x) => a + x.spend, 0), totalSales = TARGETS.reduce((a, x) => a + x.sales, 0)
+const daily = (() => {
+  const w = DATES.map((_, i) => { const dow = DATES[i].getUTCDay(); return (dow === 0 || dow === 6 ? 1.12 : 0.96) * (0.88 + rnd() * 0.24) })
+  const sw = DATES.map((_, i) => w[i] * (i >= DAYS - 12 ? 1.16 : 0.93))
+  const ks = totalSpend / sw.reduce((a, b) => a + b, 0), kr = totalSales / w.reduce((a, b) => a + b, 0)
+  return DATES.map((d, i) => ({ d, spend: sw[i] * ks, sales: w[i] * kr * (0.93 + rnd() * 0.14) }))
+})()
+
+// ───────────────────────────── helpers ─────────────────────────────
+const $ = s => document.querySelector(s)
+const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`
+const usd = (v, d = 0) => '$' + v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d })
+const pct = v => isFinite(v) ? (v * 100).toFixed(1) + '%' : '—'
+const acos = (s, r) => r > 0 ? s / r : Infinity
+const fmtDay = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
+const campName = id => CAMPAIGNS.find(c => c.id === id).name
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+const NS = 'http://www.w3.org/2000/svg'
+const el = (tag, attrs = {}, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e }
+const niceMax = v => { const p = Math.pow(10, Math.floor(Math.log10(v))); const n = v / p; return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p }
+
+// ───────────────────────────── charts ─────────────────────────────
+function lineChart(host, series, yFmt) {
+  host.innerHTML = ''
+  const W = Math.max(320, host.clientWidth), H = W < 560 ? 220 : 260
+  const m = { l: 52, r: 14, t: 12, b: 26 }, iw = W - m.l - m.r, ih = H - m.t - m.b
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': series.map(s => s.name).join(' and ') + ' by day' }, host)
+  const ymax = niceMax(Math.max(...series.flatMap(s => s.values)) * 1.05)
+  const x = i => m.l + (iw * i) / (DAYS - 1), y = v => m.t + ih - (ih * v) / ymax
+  for (let k = 0; k <= 4; k++) {
+    const v = (ymax * k) / 4
+    el('line', { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: 'var(--grid)', 'stroke-width': 1 }, svg)
+    el('text', { x: m.l - 8, y: y(v) + 4, 'text-anchor': 'end' }, svg).textContent = yFmt(v)
+  }
+  DATES.forEach((d, i) => { if ((i % 7 === 0 && i <= DAYS - 4) || i === DAYS - 1) el('text', { x: x(i), y: H - 6, 'text-anchor': 'middle' }, svg).textContent = fmtDay(d) })
+  // boost marker
+  const bi = DAYS - 12
+  el('line', { x1: x(bi), x2: x(bi), y1: m.t, y2: m.t + ih, stroke: 'var(--axis)', 'stroke-dasharray': '3 4', 'stroke-width': 1 }, svg)
+  el('text', { x: x(bi) + 6, y: m.t + 12, class: 'lbl' }, svg).textContent = 'Bid raise on 1 keyword'
+  series.forEach(s => {
+    el('path', { d: s.values.map((v, i) => (i ? 'L' : 'M') + x(i).toFixed(1) + ',' + y(v).toFixed(1)).join(''), fill: 'none', stroke: s.color, 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, svg)
+  })
+  // hover
+  const cross = el('line', { y1: m.t, y2: m.t + ih, stroke: 'var(--axis)', 'stroke-width': 1, visibility: 'hidden' }, svg)
+  const dots = series.map(s => el('circle', { r: 4.5, fill: s.color, stroke: 'var(--card)', 'stroke-width': 2, visibility: 'hidden' }, svg))
+  const tip = document.createElement('div'); tip.className = 'tip'; host.appendChild(tip)
+  const hit = el('rect', { x: m.l, y: m.t, width: iw, height: ih, fill: 'transparent' }, svg)
+  const show = ev => {
+    const r = svg.getBoundingClientRect(), px = (ev.clientX - r.left) * (W / r.width)
+    const i = Math.max(0, Math.min(DAYS - 1, Math.round(((px - m.l) / iw) * (DAYS - 1))))
+    cross.setAttribute('x1', x(i)); cross.setAttribute('x2', x(i)); cross.setAttribute('visibility', 'visible')
+    series.forEach((s, k) => { dots[k].setAttribute('cx', x(i)); dots[k].setAttribute('cy', y(s.values[i])); dots[k].setAttribute('visibility', 'visible') })
+    const d = daily[i]
+    tip.innerHTML = `<div style="margin-bottom:4px;color:var(--muted)">${fmtDay(DATES[i])}</div>` +
+      series.map(s => `<div><span class="sw" style="background:${s.color}"></span>${s.name}: <b>${yFmt(s.values[i], true)}</b></div>`).join('') +
+      `<div style="color:var(--muted);margin-top:2px">ACoS ${pct(d.spend / d.sales)}</div>`
+    tip.style.display = 'block'
+    const left = (x(i) / W) * r.width
+    tip.style.left = Math.min(r.width - tip.offsetWidth - 4, Math.max(4, left + 12)) + 'px'
+    tip.style.top = '8px'
+  }
+  hit.addEventListener('mousemove', show)
+  hit.addEventListener('mouseleave', () => { tip.style.display = 'none'; cross.setAttribute('visibility', 'hidden'); dots.forEach(d => d.setAttribute('visibility', 'hidden')) })
+}
+
+function barChart(host, items) {
+  host.innerHTML = ''
+  const W = Math.max(300, host.clientWidth), row = 30, m = { l: Math.min(190, W * 0.46), r: 54, t: 4, b: 4 }
+  const H = m.t + m.b + row * items.length, iw = W - m.l - m.r
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Wasted spend by search term' }, host)
+  const vmax = Math.max(...items.map(i => i.spend))
+  const tip = document.createElement('div'); tip.className = 'tip'; host.appendChild(tip)
+  items.forEach((it, k) => {
+    const y0 = m.t + k * row, w = Math.max(2, (iw * it.spend) / vmax)
+    el('text', { x: m.l - 8, y: y0 + row / 2 + 4, 'text-anchor': 'end', class: 'lbl' }, svg).textContent = it.t.length > 26 ? it.t.slice(0, 25) + '…' : it.t
+    // bar: 4px rounded end at the data side, flat at the baseline
+    const h = 14, yb = y0 + (row - h) / 2, r = 4
+    el('path', { d: `M${m.l},${yb} h${w - r} a${r},${r} 0 0 1 ${r},${r} v${h - 2 * r} a${r},${r} 0 0 1 -${r},${r} h-${w - r} z`, fill: 'var(--series-2)' }, svg)
+    el('text', { x: m.l + w + 6, y: y0 + row / 2 + 4, class: 'val' }, svg).textContent = usd(it.spend)
+    const hit = el('rect', { x: 0, y: y0, width: W, height: row, fill: 'transparent' }, svg)
+    hit.addEventListener('mousemove', ev => {
+      const r = svg.getBoundingClientRect()
+      tip.innerHTML = `<div><b>${esc(it.t)}</b></div><div>${it.clicks} clicks · 0 orders</div><div>Spend <b>${usd(it.spend, 2)}</b></div><div style="color:var(--muted)">${esc(campName(it.c))}</div>`
+      tip.style.display = 'block'
+      tip.style.left = Math.min(r.width - tip.offsetWidth - 4, ev.clientX - r.left + 12) + 'px'
+      tip.style.top = ((y0 + row) / H) * r.height + 'px'
+    })
+    hit.addEventListener('mouseleave', () => { tip.style.display = 'none' })
+  })
+}
+
+// ───────────────────────────── analytics ─────────────────────────────
+function renderOverview() {
+  const orders = TARGETS.reduce((a, x) => a + x.orders, 0)
+  const waste = TERMS.filter(t => t.orders === 0).reduce((a, t) => a + t.spend, 0)
+  const tiles = [
+    ['Ad spend', usd(totalSpend), '30 days'],
+    ['Ad sales', usd(totalSales), orders + ' orders'],
+    ['ACoS', pct(totalSpend / totalSales), 'spend ÷ ad sales'],
+    ['Avg. CPC', usd(totalSpend / TARGETS.reduce((a, x) => a + x.clicks, 0), 2), 'per click'],
+    ['Wasted on search terms', usd(waste), 'clicks, zero orders'],
+  ]
+  $('#kpis').innerHTML = tiles.map(([k, v, d]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join('')
+  const boosted = TARGETS.find(t => t.boost && t.boost.daysAgo >= 10)
+  $('#boost-note').textContent = `Dashed line: the bid on "${boosted.t}" was raised from ${usd(boosted.boost.from, 2)} to ${usd(boosted.boost.to, 2)}. Week after vs week before: spend ${usd(boosted.boost.before.spend)} → ${usd(boosted.boost.after.spend)}, sales ${usd(boosted.boost.before.sales)} → ${usd(boosted.boost.after.sales)}. The bidder catches this below.`
+  const rows = CAMPAIGNS.map(c => {
+    const ts = TARGETS.filter(t => t.c === c.id), s = ts.reduce((a, x) => a + x.spend, 0), r = ts.reduce((a, x) => a + x.sales, 0)
+    return { ...c, s, r, o: ts.reduce((a, x) => a + x.orders, 0) }
+  }).sort((a, b) => b.s - a.s)
+  $('#t-campaigns').innerHTML = '<thead><tr><th>Campaign</th><th class="n">Spend</th><th class="n">Sales</th><th class="n">Orders</th><th class="n">ACoS</th></tr></thead><tbody>' +
+    rows.map(c => `<tr><td>${esc(c.name)}<div class="note">${c.type}</div></td><td class="n">${usd(c.s)}</td><td class="n">${usd(c.r)}</td><td class="n">${c.o}</td><td class="n">${pct(c.s / c.r)}</td></tr>`).join('') + '</tbody>'
+  drawCharts()
+}
+function drawCharts() {
+  lineChart($('#chart-daily'), [
+    { name: 'Ad sales', color: 'var(--series-1)', values: daily.map(d => d.sales) },
+    { name: 'Ad spend', color: 'var(--series-2)', values: daily.map(d => d.spend) },
+  ], (v, exact) => exact ? usd(v, 2) : usd(v))
+  barChart($('#chart-waste'), TERMS.filter(t => t.orders === 0).sort((a, b) => b.spend - a.spend).slice(0, 8))
+}
+
+// ───────────────────────────── bidder ─────────────────────────────
+const S = { target: 0.30, minClicks: 15, maxBid: 1.75, accLimit: 0.40, filter: 'all', rejected: new Set() }
+const TYPES = {
+  down: { label: 'Bid down', icon: '▼', cls: 'b-down' }, up: { label: 'Bid up', icon: '▲', cls: 'b-up' },
+  roll: { label: 'Rollback', icon: '↶', cls: 'b-roll' }, neg: { label: 'Negative', icon: '⊘', cls: 'b-neg' },
+  harv: { label: 'Harvest', icon: '＋', cls: 'b-harv' }, hold: { label: 'Hold', icon: '⏸', cls: 'b-hold' },
+}
+// Demo elasticity: spend follows a bid change faster than sales do.
+const proj = (x, f) => ({ spend: x.spend * Math.pow(f, 1.3), sales: x.sales * Math.pow(f, 0.6) })
+const r2 = v => Math.round(v * 100) / 100
+
+function propose() {
+  const P = []
+  const T = S.target
+  const accAcos = totalSpend / totalSales
+  const guard = accAcos > S.accLimit
+  for (const x of TARGETS) {
+    const key = x.c + '|' + x.t
+    const a = acos(x.spend, x.sales)
+    if (x.boost) {
+      const b = x.boost
+      const dS = b.after.spend - b.before.spend, dR = b.after.sales - b.before.sales
+      if (b.daysAgo < 10) {
+        P.push({ key, type: 'hold', x, from: x.bid, to: x.bid, why: `Bid was raised ${b.daysAgo} days ago (${usd(b.from, 2)} → ${usd(b.to, 2)}). Waiting for the measurement: 7 days after + 3 days for orders to land. Result due in ${10 - b.daysAgo} days; no further raise until then.`, eff: { spend: 0, sales: 0 } })
+        continue
+      }
+      if (dS > 0 && dR <= 0) {
+        const p = proj(x, b.from / x.bid)
+        P.push({ key, type: 'roll', x, from: x.bid, to: b.from, why: `Raise ${usd(b.from, 2)} → ${usd(b.to, 2)} did not pay off: week after vs week before, spend ${usd(b.before.spend)} → ${usd(b.after.spend)} (+${usd(dS)}), sales ${usd(b.before.sales)} → ${usd(b.after.sales)}. Roll back and do not raise again for 14 days.`, eff: { spend: p.spend - x.spend, sales: 0 } })
+        continue
+      }
+    }
+    if (x.clicks < S.minClicks) {
+      P.push({ key, type: 'hold', x, from: x.bid, to: x.bid, why: `Only ${x.clicks} clicks — below your ${S.minClicks}-click threshold. Not enough data to judge.`, eff: { spend: 0, sales: 0 } })
+      continue
+    }
+    if (x.orders === 0) {
+      const to = r2(Math.max(0.2, x.bid * 0.75)), p = proj(x, to / x.bid)
+      P.push({ key, type: 'down', x, from: x.bid, to, why: `${x.clicks} clicks, ${usd(x.spend, 2)} spent, no orders. Cut bid 25% instead of pausing, so it can still prove itself.`, eff: { spend: p.spend - x.spend, sales: p.sales - x.sales } })
+    } else if (a > T * 1.15) {
+      const to = r2(Math.max(x.bid * 0.7, x.bid * (T / a))), p = proj(x, to / x.bid)
+      P.push({ key, type: 'down', x, from: x.bid, to, why: `ACoS ${pct(a)} vs target ${pct(T)} over ${x.clicks} clicks and ${plural(x.orders, 'order')}. Step bid toward target (max −30% per step).`, eff: { spend: p.spend - x.spend, sales: p.sales - x.sales } })
+    } else if (a < T * 0.75 && x.orders >= 3) {
+      if (guard) {
+        P.push({ key, type: 'hold', x, from: x.bid, to: x.bid, why: `ACoS ${pct(a)} is below target, but account ACoS ${pct(accAcos)} is above your ${pct(S.accLimit)} limit — raises are paused account-wide.`, eff: { spend: 0, sales: 0 } })
+      } else if (x.bid >= S.maxBid) {
+        P.push({ key, type: 'hold', x, from: x.bid, to: x.bid, why: `ACoS ${pct(a)} is below target, but the bid is already at your max bid ${usd(S.maxBid, 2)}.`, eff: { spend: 0, sales: 0 } })
+      } else {
+        const to = r2(Math.min(S.maxBid, x.bid * 1.15)), p = proj(x, to / x.bid)
+        P.push({ key, type: 'up', x, from: x.bid, to, why: `ACoS ${pct(a)} well below target ${pct(T)} with ${plural(x.orders, 'order')} — room to win more traffic. +15% step; it will be measured in 10 days and rolled back if it does not pay off.`, eff: { spend: p.spend - x.spend, sales: p.sales - x.sales } })
+      }
+    }
+  }
+  const exact = new Set(TARGETS.filter(t => t.m === 'Exact').map(t => t.t))
+  for (const s of TERMS) {
+    const key = 'st|' + s.c + '|' + s.t
+    if (s.orders === 0 && s.clicks >= S.minClicks) {
+      P.push({ key, type: 'neg', x: { t: s.t, c: s.c, m: 'Negative exact' }, from: null, to: null, why: `Search term: ${s.clicks} clicks, ${usd(s.spend, 2)} spent, zero orders. Add as negative exact in this campaign.`, eff: { spend: -s.spend, sales: 0 } })
+    } else if (s.orders >= 2 && acos(s.spend, s.sales) <= T && !exact.has(s.t)) {
+      const bid = r2(Math.min(S.maxBid, (s.spend / s.clicks) * 1.1))
+      P.push({ key, type: 'harv', x: { t: s.t, c: s.c, m: 'New exact keyword' }, from: null, to: bid, why: `Converting search term: ${plural(s.orders, 'order')}, ACoS ${pct(acos(s.spend, s.sales))}. Add as exact keyword at ${usd(bid, 2)} and negate it here so the two don't compete.`, eff: { spend: -s.spend * 0.1, sales: s.sales * 0.1 } })
+    }
+  }
+  return P
+}
+
+function renderBidder() {
+  $('#o-target').textContent = Math.round(S.target * 100) + '%'
+  $('#o-minclicks').textContent = S.minClicks
+  $('#o-maxbid').textContent = usd(S.maxBid, 2)
+  $('#o-acclimit').textContent = Math.round(S.accLimit * 100) + '%'
+  const P = propose()
+  const active = P.filter(p => p.type !== 'hold' && !S.rejected.has(p.key))
+  const dSpend = active.reduce((a, p) => a + p.eff.spend, 0), dSales = active.reduce((a, p) => a + p.eff.sales, 0)
+  const wk = 7 / 30
+  const before = totalSpend / totalSales, after = (totalSpend + dSpend) / (totalSales + dSales)
+  const counts = {}; P.forEach(p => counts[p.type] = (counts[p.type] || 0) + 1)
+  $('#proj').innerHTML = [
+    ['Changes proposed', P.filter(p => p.type !== 'hold').length, `${active.length} approved`],
+    ['Projected ACoS', pct(after), `now ${pct(before)}`],
+    ['Weekly spend change', (dSpend < 0 ? '−' : '+') + usd(Math.abs(dSpend * wk)), 'approved changes'],
+    ['Weekly sales change', (dSales < 0 ? '−' : '+') + usd(Math.abs(dSales * wk)), 'approved changes'],
+  ].map(([k, v, d]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join('')
+  const F = [['all', 'All', P.length], ...Object.entries(TYPES).filter(([t]) => counts[t]).map(([t, v]) => [t, v.label, counts[t]])]
+  $('#filters').innerHTML = F.map(([t, l, n]) => `<button class="chip" data-f="${t}" aria-pressed="${S.filter === t}">${l} · ${n}</button>`).join('')
+  const rows = P.filter(p => S.filter === 'all' || p.type === S.filter)
+  const order = { roll: 0, neg: 1, down: 2, up: 3, harv: 4, hold: 5 }
+  rows.sort((a, b) => order[a.type] - order[b.type] || Math.abs(b.eff.spend) - Math.abs(a.eff.spend))
+  $('#t-props').innerHTML = '<thead><tr><th>Apply</th><th>Change</th><th>Target</th><th class="n">Bid</th><th>Why</th></tr></thead><tbody>' + rows.map(p => {
+    const ty = TYPES[p.type], on = !S.rejected.has(p.key), hold = p.type === 'hold'
+    const bid = p.type === 'neg' ? '—' : p.type === 'harv' ? `new ${usd(p.to, 2)}` : hold ? usd(p.from, 2) : `${usd(p.from, 2)} → ${usd(p.to, 2)}`
+    return `<tr class="${on || hold ? '' : 'off'}"><td>${hold ? '<span class="note">—</span>' : `<input type="checkbox" data-k="${esc(p.key)}" ${on ? 'checked' : ''} aria-label="Apply this change">`}</td>
+      <td><span class="badge ${ty.cls}"><span aria-hidden="true">${ty.icon}</span>${ty.label}</span></td>
+      <td>${esc(p.x.t)}<div class="note">${esc(campName(p.x.c))} · ${esc(p.x.m)}</div></td>
+      <td class="n change">${bid}</td><td class="why">${esc(p.why)}</td></tr>`
+  }).join('') + '</tbody>'
+  window.__P = P
+}
+
+function downloadBulk() {
+  const P = (window.__P || []).filter(p => p.type !== 'hold' && !S.rejected.has(p.key))
+  const head = ['Product', 'Entity', 'Operation', 'Campaign Name', 'Ad Group Name', 'Keyword Text', 'Match Type', 'Bid', 'State']
+  const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`
+  const rows = P.map(p => {
+    const camp = campName(p.x.c), ag = camp.split('| ').pop()
+    if (p.type === 'neg') return ['Sponsored Products', 'Negative Keyword', 'Create', camp, ag, p.x.t, 'negativeExact', '', 'enabled']
+    if (p.type === 'harv') return ['Sponsored Products', 'Keyword', 'Create', 'SP | Exact | Core', 'Core', p.x.t, 'exact', p.to.toFixed(2), 'enabled']
+    const ent = p.x.m === 'Product' ? 'Product Targeting' : p.x.m === 'Auto' ? 'Product Targeting' : 'Keyword'
+    return ['Sponsored Products', ent, 'Update', camp, ag, p.x.t, p.x.m.toLowerCase(), p.to.toFixed(2), 'enabled']
+  })
+  const csv = [head, ...rows].map(r => r.map(q).join(',')).join('\n')
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
+  a.download = 'flatbid-demo-bulk-changes.csv'
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+}
+
+// ───────────────────────────── ask Claude (computed from demo data) ─────────────────────────────
+const QA = [
+  ['Which search terms wasted the most money this month?', () => {
+    const w = TERMS.filter(t => t.orders === 0).sort((a, b) => b.spend - a.spend).slice(0, 5)
+    return `<p>Five search terms took <b>${usd(w.reduce((a, t) => a + t.spend, 0), 2)}</b> with zero orders:</p><ul>${w.map(t => `<li><b>${esc(t.t)}</b> — ${usd(t.spend, 2)}, ${t.clicks} clicks (${esc(campName(t.c))})</li>`).join('')}</ul><p class="note">Most are different materials (plastic, glass, marble) — shoppers who don't want bamboo. Negating them is safe.</p>`
+  }],
+  ['Did any bid increase backfire?', () => {
+    const b = TARGETS.find(t => t.boost && t.boost.daysAgo >= 10)
+    return `<p>Yes — <b>${esc(b.t)}</b>. The bid went from ${usd(b.boost.from, 2)} to ${usd(b.boost.to, 2)} twelve days ago.</p><ul><li>Spend, week after vs before: ${usd(b.boost.before.spend)} → <b>${usd(b.boost.after.spend)}</b></li><li>Sales: ${usd(b.boost.before.sales)} → <b>${usd(b.boost.after.sales)}</b></li></ul><p>It bought more expensive clicks, not more orders. I'd roll it back to ${usd(b.boost.from, 2)} and not raise it again for two weeks.</p>`
+  }],
+  ['Where can I spend more profitably?', () => {
+    const g = TARGETS.filter(t => t.orders >= 3 && acos(t.spend, t.sales) < S.target * 0.75).sort((a, b) => acos(a.spend, a.sales) - acos(b.spend, b.sales)).slice(0, 4)
+    return `<p>These targets convert well below your ${pct(S.target)} target and can take more traffic:</p><ul>${g.map(t => `<li><b>${esc(t.t)}</b> — ACoS ${pct(acos(t.spend, t.sales))}, ${t.orders} orders, bid ${usd(t.bid, 2)}</li>`).join('')}</ul><p class="note">Raise in 15% steps and measure each step — not all at once.</p>`
+  }],
+  ['Which campaign is dragging my ACoS up?', () => {
+    const c = CAMPAIGNS.map(c => { const ts = TARGETS.filter(t => t.c === c.id); const s = ts.reduce((a, x) => a + x.spend, 0), r = ts.reduce((a, x) => a + x.sales, 0); return { ...c, s, r, a: s / r } }).sort((a, b) => b.a - a.a)
+    const w = c[0]
+    return `<p><b>${esc(w.name)}</b> — ACoS ${pct(w.a)} on ${usd(w.s)} spend, vs ${pct(totalSpend / totalSales)} for the account.</p><p>Biggest contributors: ${TARGETS.filter(t => t.c === w.id).sort((a, b) => acos(b.spend, b.sales) - acos(a.spend, a.sales)).slice(0, 2).map(t => `<b>${esc(t.t)}</b> (${pct(acos(t.spend, t.sales))})`).join(' and ')}. The bidder already proposes lowering them toward target.</p>`
+  }],
+]
+function renderQA() {
+  $('#qa').innerHTML = QA.map(([q], i) => `<button data-q="${i}" aria-pressed="false">${q}</button>`).join('')
+  $('#qa').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return
+    document.querySelectorAll('#qa button').forEach(x => x.setAttribute('aria-pressed', String(x === b)))
+    $('#answer').innerHTML = QA[+b.dataset.q][1]()
+  })
+}
+
+// ───────────────────────────── wiring ─────────────────────────────
+const bind = (id, k, f) => { const i = $('#' + id); i.addEventListener('input', () => { S[k] = f(+i.value); renderBidder() }) }
+bind('target', 'target', v => v / 100); bind('minclicks', 'minClicks', v => v); bind('maxbid', 'maxBid', v => v); bind('acclimit', 'accLimit', v => v / 100)
+$('#filters').addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return; S.filter = b.dataset.f; renderBidder() })
+$('#t-props').addEventListener('change', e => { const k = e.target.dataset.k; if (!k) return; e.target.checked ? S.rejected.delete(k) : S.rejected.add(k); renderBidder() })
+$('#dl').addEventListener('click', downloadBulk)
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawCharts, 150) })
+renderOverview(); renderBidder(); renderQA()
+</script>
+</body>
+</html>
