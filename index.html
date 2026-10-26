@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FlatBid — Amazon PPC bid optimization at a flat price</title>
+<meta name="description" content="Amazon Sponsored Products bid optimization for a flat monthly price. No percentage of ad spend. Upload your bulk file, get optimized bids back. Early access for US sellers.">
+<meta property="og:title" content="FlatBid — Amazon PPC bid optimization at a flat price">
+<meta property="og:description" content="No % of ad spend. Upload your bulk file, get optimized bids back. Early access for US sellers.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%231f6feb'/><path d='M8 20h16M8 14h10' stroke='white' stroke-width='3' stroke-linecap='round'/></svg>">
+<style>
+  :root {
+    --bg: #ffffff; --bg-soft: #f5f7fb; --text: #0f172a; --muted: #5b6475; --line: #e3e8f0;
+    --brand: #1f6feb; --brand-ink: #ffffff; --brand-soft: #e8f0fe; --ok: #0f7b4a; --card: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0b1020; --bg-soft: #111831; --text: #e8ecf5; --muted: #9aa4b8; --line: #243055;
+      --brand: #4c8dff; --brand-ink: #0b1020; --brand-soft: #16244a; --ok: #3ccf8e; --card: #0f1630;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif; }
+  a { color: var(--brand); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+  header.top { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+  header.top .wrap { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+  .logo { font-weight: 800; font-size: 20px; letter-spacing: -0.02em; color: var(--text); text-decoration: none; }
+  .logo span { color: var(--brand); }
+  nav a { color: var(--muted); text-decoration: none; margin-left: 22px; font-size: 15px; }
+  nav a:hover { color: var(--text); }
+  .btn { display: inline-block; background: var(--brand); color: var(--brand-ink); border: 0; border-radius: 10px; padding: 13px 22px; font-weight: 650; font-size: 16px; text-decoration: none; cursor: pointer; }
+  .btn:hover { filter: brightness(1.08); }
+  .btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); }
+  .hero { padding: 72px 0 56px; }
+  .pill { display: inline-block; background: var(--brand-soft); color: var(--brand); border-radius: 999px; padding: 5px 12px; font-size: 14px; font-weight: 600; margin-bottom: 18px; }
+  h1 { font-size: clamp(34px, 5.4vw, 56px); line-height: 1.08; letter-spacing: -0.03em; margin: 0 0 18px; max-width: 900px; }
+  .lead { font-size: clamp(18px, 2.2vw, 21px); color: var(--muted); max-width: 720px; margin: 0 0 30px; }
+  .cta-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .note { font-size: 14px; color: var(--muted); margin-top: 14px; }
+  section { padding: 64px 0; }
+  section.soft { background: var(--bg-soft); }
+  h2 { font-size: clamp(26px, 3.6vw, 36px); letter-spacing: -0.02em; line-height: 1.15; margin: 0 0 14px; }
+  .sub { color: var(--muted); max-width: 720px; margin: 0 0 34px; }
+  .grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  @media (min-width: 900px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 22px; }
+  .card h3 { margin: 0 0 8px; font-size: 18px; }
+  .card p { margin: 0; color: var(--muted); font-size: 15.5px; }
+  .step { font-size: 13px; font-weight: 700; color: var(--brand); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; }
+  .pricing { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); align-items: stretch; }
+  .plan { display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 24px; }
+  .plan.featured { border: 2px solid var(--brand); }
+  .plan h3 { margin: 0 0 4px; font-size: 19px; }
+  .plan .price { font-size: 38px; font-weight: 800; letter-spacing: -0.02em; margin: 8px 0 2px; }
+  .plan .price small { font-size: 15px; font-weight: 500; color: var(--muted); }
+  .plan .for { color: var(--muted); font-size: 14.5px; min-height: 44px; }
+  .plan ul { list-style: none; padding: 0; margin: 16px 0 22px; flex: 1; }
+  .plan li { padding: 6px 0 6px 24px; position: relative; font-size: 15px; }
+  .plan li::before { content: "✓"; position: absolute; left: 0; color: var(--ok); font-weight: 700; }
+  .plan .tag { display: inline-block; font-size: 12px; font-weight: 700; background: var(--brand-soft); color: var(--brand); border-radius: 6px; padding: 3px 8px; margin-left: 6px; vertical-align: middle; }
+  .promise { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-top: 26px; }
+  .promise div { font-size: 15px; color: var(--muted); }
+  .promise b { color: var(--text); }
+  form.signup { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 26px; max-width: 640px; }
+  .field { margin-bottom: 14px; }
+  label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  input, select, textarea { width: 100%; font: inherit; font-size: 16px; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; }
+  textarea { min-height: 84px; resize: vertical; }
+  .check { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; font-weight: 400; }
+  .check input { width: auto; margin-top: 4px; }
+  .msg { margin-top: 12px; font-size: 15px; }
+  .msg.ok { color: var(--ok); } .msg.err { color: #d14343; }
+  details { border-bottom: 1px solid var(--line); padding: 16px 0; }
+  summary { cursor: pointer; font-weight: 650; font-size: 17px; }
+  details p { color: var(--muted); margin: 10px 0 0; }
+  footer { padding: 36px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+  footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+  @media (max-width: 640px) { nav a:not(.btn) { display: none; } section { padding: 48px 0; } .hero { padding: 48px 0 40px; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="logo" href="#">Flat<span>Bid</span></a>
+    <nav>
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+      <a class="btn" href="#early-access" style="padding:8px 14px;font-size:14px;margin-left:18px">Get early access</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <div class="pill">Early access · Amazon US · Sponsored Products</div>
+      <h1>Amazon PPC bid optimization at a flat price. Never a % of your ad spend.</h1>
+      <p class="lead">Upload your Amazon Ads bulk file, get optimized bids, new negatives and harvested keywords back in minutes — with a plain-English reason for every change. Then upload it to Amazon. No account access needed.</p>
+      <div class="cta-row">
+        <a class="btn" href="#early-access">Join early access</a>
+        <a class="btn ghost" href="#pricing">See pricing</a>
+      </div>
+      <p class="note">We are onboarding the first 20 sellers. Founding members get 3 months of Pro free and 50% off for as long as they stay.</p>
+    </div>
+  </section>
+
+  <section class="soft">
+    <div class="wrap">
+      <h2>PPC tools got expensive in 2026</h2>
+      <p class="sub">Entry plans disappeared, free tiers were cut, and agencies and platforms charging a percentage of ad spend get paid more when you spend more. We think bid optimization should cost the same whether you spend $2,000 or $50,000 a month.</p>
+      <div class="grid">
+        <div class="card"><h3>Flat monthly price</h3><p>Your bill does not grow with your ad budget. No percentage of spend, no add-ons for basic features.</p></div>
+        <div class="card"><h3>Cancel in one click</h3><p>No calls, no retention flows. Unused days of a paid month are refunded.</p></div>
+        <div class="card"><h3>Your data stays yours</h3><p>Every report you upload can be exported back. No lock-in, no history held hostage.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="wrap">
+      <h2>How it works</h2>
+      <p class="sub">Version one works with the bulk files Amazon Ads already gives you. Automatic daily bidding through the Amazon Ads API comes next.</p>
+      <div class="grid">
+        <div class="card"><div class="step">Step 1</div><h3>Download your bulk file</h3><p>In Amazon Ads → Bulk operations, export Sponsored Products for the last 30–60 days with search term data.</p></div>
+        <div class="card"><div class="step">Step 2</div><h3>Upload it to FlatBid</h3><p>Set your target ACoS per product or campaign. FlatBid computes new bids, negatives and keyword harvests.</p></div>
+        <div class="card"><div class="step">Step 3</div><h3>Review and upload back</h3><p>See every change with its reason, uncheck anything you disagree with, download the file and upload it to Amazon.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="features" class="soft">
+    <div class="wrap">
+      <h2>What FlatBid does</h2>
+      <p class="sub">The bidding engine behind FlatBid already manages ad bids for sellers on other marketplaces. We are bringing it to Amazon.</p>
+      <div class="grid">
+        <div class="card"><h3>Target-ACoS bid ladder</h3><p>Raises bids on targets below your ACoS goal, lowers them above it, in measured steps with floors and caps you control.</p></div>
+        <div class="card"><h3>Bid-raise check</h3><p>Every bid increase is measured: week after vs week before. If it did not pay off, the bid is rolled back and the target is not boosted again for two weeks.</p></div>
+        <div class="card"><h3>Negative keyword mining</h3><p>Finds search terms that spend without converting and proposes them as negatives — only when several signals agree.</p></div>
+        <div class="card"><h3>Keyword harvesting</h3><p>Moves converting search terms from auto and broad campaigns into exact-match targets.</p></div>
+        <div class="card"><h3>Account-level guardrail</h3><p>If total ACoS drifts above your limit, FlatBid stops raising bids first and trims the most expensive targets — without pausing your ads.</p></div>
+        <div class="card"><h3>A reason for every change</h3><p>No black box. Each bid change comes with the numbers behind it, so you can learn from it or overrule it.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="pricing">
+    <div class="wrap">
+      <h2>Simple, flat pricing</h2>
+      <p class="sub">Planned prices for launch. Founding members pay 50% of these for as long as they stay subscribed.</p>
+      <div class="pricing">
+        <div class="plan">
+          <h3>Free audit</h3>
+          <div class="price">$0</div>
+          <div class="for">One-time look at where your ad budget leaks.</div>
+          <ul>
+            <li>Upload one bulk file</li>
+            <li>Wasted spend by target and search term</li>
+            <li>Bid raises that did not pay off</li>
+            <li>No changes applied</li>
+          </ul>
+          <a class="btn ghost" href="#early-access">Request audit</a>
+        </div>
+        <div class="plan">
+          <h3>Starter</h3>
+          <div class="price">$29<small>/month</small></div>
+          <div class="for">For sellers with a handful of campaigns.</div>
+          <ul>
+            <li>Weekly bulk file optimization</li>
+            <li>Up to 25 campaigns</li>
+            <li>Target-ACoS bid ladder</li>
+            <li>Negative keyword suggestions</li>
+          </ul>
+          <a class="btn ghost" href="#early-access">Join early access</a>
+        </div>
+        <div class="plan featured">
+          <h3>Pro <span class="tag">Most popular</span></h3>
+          <div class="price">$79<small>/month</small></div>
+          <div class="for">For growing brands. Flat — any ad spend.</div>
+          <ul>
+            <li>Unlimited campaigns and uploads</li>
+            <li>Bid-raise check with automatic rollback</li>
+            <li>Keyword harvesting</li>
+            <li>Account-level ACoS guardrail</li>
+            <li>Change history and export</li>
+          </ul>
+          <a class="btn" href="#early-access">Join early access</a>
+        </div>
+        <div class="plan">
+          <h3>Autopilot <span class="tag">Coming next</span></h3>
+          <div class="price">$149<small>/month</small></div>
+          <div class="for">Everything in Pro, applied automatically every day.</div>
+          <ul>
+            <li>Amazon Ads API connection</li>
+            <li>Daily bid updates</li>
+            <li>Budget pacing alerts</li>
+            <li>Multiple marketplaces</li>
+          </ul>
+          <a class="btn ghost" href="#early-access">Join the waitlist</a>
+        </div>
+      </div>
+      <div class="promise">
+        <div><b>No % of ad spend.</b> Ever.</div>
+        <div><b>One-click cancel.</b> Prorated refunds.</div>
+        <div><b>Export everything.</b> No lock-in.</div>
+        <div><b>US marketplace first.</b> More to follow.</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="early-access" class="soft">
+    <div class="wrap">
+      <h2>Join early access</h2>
+      <p class="sub">We are looking for 20 US Amazon sellers running Sponsored Products to shape the first version. Founding members get Pro free for 3 months and 50% off afterwards. All we need is a bulk file export — no Seller Central or Ads account access.</p>
+      <form class="signup" id="signup" novalidate>
+        <div class="field">
+          <label for="email">Work email</label>
+          <input id="email" name="email" type="email" autocomplete="email" required placeholder="you@yourbrand.com">
+        </div>
+        <div class="field">
+          <label for="spend">Monthly Amazon ad spend</label>
+          <select id="spend" name="spend">
+            <option value="">Select…</option>
+            <option>Under $1,000</option>
+            <option>$1,000 – $5,000</option>
+            <option>$5,000 – $20,000</option>
+            <option>$20,000 – $50,000</option>
+            <option>Over $50,000</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="tool">What do you use for PPC today?</label>
+          <select id="tool" name="tool">
+            <option value="">Select…</option>
+            <option>Manual in Amazon Ads console</option>
+            <option>Spreadsheets / bulk files</option>
+            <option>Helium 10 Ads</option>
+            <option>Perpetua</option>
+            <option>Teikametrics</option>
+            <option>Pacvue</option>
+            <option>An agency</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="pain">What frustrates you most about PPC right now? (optional)</label>
+          <textarea id="pain" name="pain" maxlength="1000"></textarea>
+        </div>
+        <div class="field">
+          <label class="check"><input type="checkbox" id="beta" name="beta"><span>I am open to sharing a bulk file and a 20-minute call as a beta tester.</span></label>
+        </div>
+        <div class="field">
+          <label class="check"><input type="checkbox" id="consent" name="consent" required><span>I agree to be contacted about FlatBid early access. See our <a href="privacy.html">privacy notice</a>.</span></label>
+        </div>
+        <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px" aria-hidden="true">
+        <button class="btn" type="submit">Request early access</button>
+        <div class="msg" id="msg" role="status"></div>
+      </form>
+    </div>
+  </section>
+
+  <section id="faq">
+    <div class="wrap">
+      <h2>FAQ</h2>
+      <details><summary>Do you need access to my Seller Central or Amazon Ads account?</summary><p>No. Version one works only with the bulk file you export yourself. You review every change and upload the file back to Amazon. The future Autopilot plan will connect through Amazon's official Ads API, only with your explicit consent, and you can revoke it at any time.</p></details>
+      <details><summary>Is FlatBid available now?</summary><p>Not yet. We are building it with our first sellers. Join early access and we will email you when your account is ready — usually with a free audit of your current campaigns first.</p></details>
+      <details><summary>Why a flat price instead of a percentage of ad spend?</summary><p>A percentage rewards the tool when you spend more. A flat price means our only incentive is to make your existing spend work harder.</p></details>
+      <details><summary>Which ad types and marketplaces are supported?</summary><p>We start with Sponsored Products on the US marketplace. Sponsored Brands, Sponsored Display and other marketplaces will follow based on what early users need most.</p></details>
+      <details><summary>What happens to the files I upload?</summary><p>They are used only to compute your recommendations and are never shared or sold. You can delete your data at any time. See the <a href="privacy.html">privacy notice</a>.</p></details>
+      <details><summary>Can I cancel any time?</summary><p>Yes — in one click from your account. Unused days of a paid month are refunded.</p></details>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>© 2026 FlatBid. Not affiliated with Amazon. Amazon is a trademark of Amazon.com, Inc. or its affiliates.</div>
+    <div><a href="privacy.html">Privacy</a></div>
+  </div>
+</footer>
+
+<script>
+  // Заявки всегда принимает наш сервер, где бы ни лежала сама страница.
+  const API = location.hostname.endsWith('sslip.io') ? '' : 'https://flatbid.193-168-49-200.sslip.io'
+  const form = document.getElementById('signup')
+  const msg = document.getElementById('msg')
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault()
+    msg.className = 'msg'; msg.textContent = ''
+    const data = Object.fromEntries(new FormData(form))
+    data.beta = form.beta.checked; data.consent = form.consent.checked
+    data.source = new URLSearchParams(location.search).get('utm_source') || document.referrer || ''
+    if (!/^\S+@\S+\.\S+$/.test(data.email || '')) { msg.className = 'msg err'; msg.textContent = 'Please enter a valid email.'; return }
+    if (!data.consent) { msg.className = 'msg err'; msg.textContent = 'Please confirm we may contact you.'; return }
+    const btn = form.querySelector('button'); btn.disabled = true
+    try {
+      const r = await fetch(API + '/api/waitlist', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+      if (!r.ok) throw new Error()
+      form.reset(); msg.className = 'msg ok'; msg.textContent = "You're on the list. We'll be in touch soon."
+    } catch { msg.className = 'msg err'; msg.textContent = 'Something went wrong. Please try again.' }
+    finally { btn.disabled = false }
+  })
+</script>
+</body>
+</html>
